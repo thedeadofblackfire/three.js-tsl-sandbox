@@ -1,7 +1,9 @@
 import GUI from 'lil-gui'
 import * as THREE from 'three/webgpu'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
-import { dot, cos, float, min, timerLocal, atan2, uniform, pass, bloom, PI, PI2, color, positionLocal, rangeFog, sin, texture, tslFn, uv, vec2, vec3, vec4 } from 'three/webgpu'
+import { dot, cos, float, min, time, atan, uniform, pass, PI, PI2, color, positionLocal, fog, rangeFogFactor, sin, texture, Fn as tslFn, uv, vec2, vec3, vec4 } from 'three/tsl'
+import { bloom } from 'three/addons/tsl/display/BloomNode.js'
+const timerLocal = () => time
 import gridMaterial from './GridMaterial'
 
 /**
@@ -17,7 +19,7 @@ const canvas = document.querySelector('canvas.webgl')
 
 // Scene
 const scene = new THREE.Scene()
-scene.fogNode = rangeFog(color('#171617'), 2, 15)
+scene.fogNode = fog(color('#171617'), rangeFogFactor(2, 15))
 
 // Loaders
 const textureLoader = new THREE.TextureLoader()
@@ -39,7 +41,7 @@ const toRadialUv = tslFn(([uv, multiplier, rotation, offset]) =>
 {
     const centeredUv = uv.sub(0.5).toVar();
     const distanceToCenter = centeredUv.length()
-    const angle = atan2(centeredUv.y, centeredUv.x);
+    const angle = atan(centeredUv.y, centeredUv.x);
     const radialUv = vec2(angle.add(PI).div(PI2), distanceToCenter).toVar()
     radialUv.mulAssign(multiplier)
     radialUv.x.addAssign(rotation)
@@ -58,7 +60,7 @@ const toSkewedUv = tslFn(([uv, skew]) =>
 
 const twistedCylinder = tslFn(([position, parabolStrength, parabolOffset, parabolAmplitude, time]) =>
 {
-    const angle = atan2(position.z, position.x)
+    const angle = atan(position.z, position.x)
     const elevation = position.y
 
     // Parabol
@@ -347,7 +349,7 @@ renderer.setClearColor('#171617')
 /**
  * Post processing
  */
-const postProcessing = new THREE.PostProcessing(renderer)
+const postProcessing = new THREE.RenderPipeline(renderer)
 
 const scenePass = pass(scene, camera)
 const scenePassColor = scenePass.getTextureNode('output')
@@ -364,21 +366,22 @@ postProcessing.outputNode = scenePassColor.add(bloomPass)
 /**
  * Animate
  */
-const clock = new THREE.Clock()
+const timer = new THREE.Timer()
 
 const tick = () =>
 {
-    const elapsedTime = clock.getElapsedTime()
+    timer.update()
 
     // Update controls
     controls.update()
 
     // Render
-    postProcessing.renderAsync()
-    // renderer.renderAsync(scene, camera)
+    postProcessing.render()
+    // renderer.render(scene, camera)
 
     // Call tick again on the next frame
     window.requestAnimationFrame(tick)
 }
 
+await renderer.init()
 tick()

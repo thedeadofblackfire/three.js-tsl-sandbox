@@ -1,4 +1,5 @@
-import { If, min, MeshBasicNodeMaterial, SpriteNodeMaterial, color, range, sin, instanceIndex, timerDelta, smoothstep, step, timerGlobal, tslFn, uniform, uv, vec3, vec4, positionWorld, vec2, normalWorld, mix, max, rangeFog, densityFog } from 'three/webgpu'
+import { MeshBasicNodeMaterial, SpriteNodeMaterial } from 'three/webgpu'
+import { If, min, color, range, sin, instanceIndex, deltaTime, smoothstep, step, time, Fn as tslFn, uniform, uv, vec3, vec4, positionWorld, vec2, normalWorld, mix, max } from 'three/tsl'
 
 const projectedGridUv = tslFn(([ position, normal ]) =>
 {
