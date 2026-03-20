@@ -1,7 +1,7 @@
 import * as THREE from 'three/webgpu'
 import GUI from 'lil-gui'
-import { If, PI2, atan2, color, frontFacing, output, positionLocal, tslFn, uniform, vec4 } from 'three/webgpu'
-import { RGBELoader } from 'three/addons/loaders/RGBELoader.js'
+import { If, PI2, atan, color, frontFacing, output, positionLocal, Fn as tslFn, uniform, vec4 } from 'three/tsl'
+import { HDRLoader } from 'three/addons/loaders/HDRLoader.js'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
@@ -19,7 +19,7 @@ const canvas = document.querySelector('canvas.webgl')
 const scene = new THREE.Scene()
 
 // Loaders
-const rgbeLoader = new RGBELoader()
+const rgbeLoader = new HDRLoader()
 const dracoLoader = new DRACOLoader()
 dracoLoader.setDecoderPath('./draco/')
 const gltfLoader = new GLTFLoader()
@@ -49,7 +49,7 @@ const sliceColor = uniform(color('#b62f58'))
 
 const inAngle = tslFn(() =>
 {
-    const angle = atan2(positionLocal.y, positionLocal.x).sub(sliceStart).mod(PI2)
+    const angle = atan(positionLocal.y, positionLocal.x).sub(sliceStart).mod(PI2)
     return angle.greaterThan(0).and(angle.lessThan(sliceArc))
 })
 
@@ -207,10 +207,11 @@ const tick = () =>
     controls.update()
 
     // Render
-    renderer.renderAsync(scene, camera)
+    renderer.render(scene, camera)
 
     // Call tick again on the next frame
     window.requestAnimationFrame(tick)
 }
 
+await renderer.init()
 tick()

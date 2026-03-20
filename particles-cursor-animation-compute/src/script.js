@@ -1,11 +1,9 @@
-import * as THREE from 'three'
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import * as THREE from 'three/webgpu'
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import GUI from 'lil-gui'
-import WebGPURenderer from 'three/examples/jsm/renderers/webgpu/WebGPURenderer.js'
-import { If, SpriteNodeMaterial, color, cond, float, instanceIndex, mix, step, storage, texture, timerDelta, timerGlobal, tslFn, uniform, uv, varying, vec3, vec4 } from 'three/examples/jsm/nodes/Nodes.js'
-import StorageInstancedBufferAttribute from 'three/examples/jsm/renderers/common/StorageInstancedBufferAttribute.js'
+import { If, color, float, instanceIndex, mix, step, storage, texture, deltaTime as timerDelta, time as timerGlobal, Fn as tslFn, uniform, uv, varying, vec3, vec4 } from 'three/tsl'
 import { simplexNoise4d } from './tsl/simplexNoise4d.js'
-import { Timer } from 'three/examples/jsm/Addons.js'
+import { Timer } from 'three'
 
 /**
  * Base
@@ -60,7 +58,7 @@ controls.enableDamping = true
 /**
  * Renderer
  */
-const renderer = new WebGPURenderer({
+const renderer = new THREE.WebGPURenderer({
     canvas: canvas
 })
 renderer.setSize(sizes.width, sizes.height)
@@ -71,6 +69,7 @@ gui.addColor({ color: clearColor.getHex(THREE.SRGBColorSpace) }, 'color')
    .onChange((value) => { renderer.setClearColor(value) })
 
 renderer.setClearColor(clearColor.getHex(THREE.SRGBColorSpace))
+await renderer.init()
 
 /**
  * cursor
@@ -101,7 +100,7 @@ window.addEventListener('pointermove', (event) =>
  * Particles
  */
 // Setup
-const material = new SpriteNodeMaterial()
+const material = new THREE.SpriteNodeMaterial()
 const size = 128
 const count = size * size
 
@@ -142,15 +141,15 @@ for(let i = 0; i < count; i++)
     directionArray[i3 + 2] = direction.z
 }
 
-const uvBuffer = storage(new StorageInstancedBufferAttribute(uvArray, 2), 'vec2', count)
+const uvBuffer = storage(new THREE.StorageInstancedBufferAttribute(uvArray, 2), 'vec2', count)
 const uvAttribute = uvBuffer.toAttribute()
 
-const basePositionBuffer = storage(new StorageInstancedBufferAttribute(basePositionArray, 3), 'vec3', count)
+const basePositionBuffer = storage(new THREE.StorageInstancedBufferAttribute(basePositionArray, 3), 'vec3', count)
 
-const directionBuffer = storage(new StorageInstancedBufferAttribute(directionArray, 3), 'vec3', count)
+const directionBuffer = storage(new THREE.StorageInstancedBufferAttribute(directionArray, 3), 'vec3', count)
 
-const positionBuffer = storage(new StorageInstancedBufferAttribute(count, 3), 'vec3', count)
-const velocityBuffer = storage(new StorageInstancedBufferAttribute(count, 3), 'vec3', count)
+const positionBuffer = storage(new THREE.StorageInstancedBufferAttribute(count, 3), 'vec3', count)
+const velocityBuffer = storage(new THREE.StorageInstancedBufferAttribute(count, 3), 'vec3', count)
 
 // Compute init
 const particlesInit = tslFn(() =>
@@ -178,8 +177,8 @@ const particlesUpdate = tslFn(() =>
     const direction = directionBuffer.element(instanceIndex)
 
     // Setup
-    const time = timerGlobal()
-    const delta = timerDelta()
+    const time = timerGlobal
+    const delta = timerDelta
     const newVelocity = velocity
 
     // Attraction
@@ -276,7 +275,7 @@ const tick = () =>
 
     // Render
     renderer.compute(particlesUpdateCompute)
-    renderer.renderAsync(scene, camera)
+    renderer.render(scene, camera)
 
     // Call tick again on the next frame
     window.requestAnimationFrame(tick)

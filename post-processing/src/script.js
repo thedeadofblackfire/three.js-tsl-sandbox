@@ -1,16 +1,11 @@
 import GUI from 'lil-gui'
-import * as THREE from 'three'
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
-import { If, min, MeshBasicNodeMaterial, SpriteNodeMaterial, color, range, sin, instanceIndex, timerDelta, smoothstep, step, timerGlobal, tslFn, uniform, uv, vec3, vec4, positionWorld, vec2, normalWorld, mix, max, rangeFog, densityFog, uint, hash, float, viewportDepthTexture, depthTexture, viewportSharedTexture, pass, cameraNear, cameraFar } from 'three/examples/jsm/nodes/Nodes.js'
-import WebGPURenderer from 'three/examples/jsm/renderers/webgpu/WebGPURenderer.js'
-import { storage } from 'three/examples/jsm/nodes/Nodes.js'
-import StorageInstancedBufferAttribute from 'three/examples/jsm/renderers/common/StorageInstancedBufferAttribute.js'
-import { simplexNoise4d } from './tsl/simplexNoise4d.js'
-import { GLTFLoader, Wireframe } from 'three/examples/jsm/Addons.js'
-import { TransformControls } from 'three/addons/controls/TransformControls.js';
+import * as THREE from 'three/webgpu'
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+import { TransformControls } from 'three/addons/controls/TransformControls.js'
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
+import { pass, uniform, color, fog, rangeFogFactor } from 'three/tsl'
+import { gaussianBlur } from 'three/addons/tsl/display/GaussianBlurNode.js'
 import gridMaterial from './GridMaterial.js'
-import { MeshStandardNodeMaterial } from 'three/examples/jsm/nodes/Nodes.js'
-import PostProcessing from 'three/examples/jsm/renderers/common/PostProcessing.js'
 
 /**
  * Base
@@ -70,7 +65,7 @@ cameraControls.enableDamping = true
 /**
  * Renderer
  */
-const renderer = new WebGPURenderer({
+const renderer = new THREE.WebGPURenderer({
     canvas: canvas,
     antialias: true
 })
@@ -95,7 +90,7 @@ scene.add(focusPoint)
 
 const focusPointControls = new TransformControls(camera, renderer.domElement)
 focusPointControls.attach(focusPoint)
-scene.add(focusPointControls)
+scene.add(focusPointControls.getHelper())
 
 focusPointControls.addEventListener('change', (event) =>
 {
@@ -110,13 +105,13 @@ focusPointControls.addEventListener('dragging-changed', (event) =>
 /**
  * Post processing
  */
-const postProcessing = new PostProcessing(renderer)
+const postProcessing = new THREE.RenderPipeline(renderer)
 
 // Color
 const colorPass = pass(scene, camera)
 
 // Depth
-const depthPass = colorPass.getDepthNode()
+const depthPass = colorPass.getLinearDepthNode()
 const absoluteDepth = depthPass.mul(camera.far - camera.near)
 const colorPassNode = colorPass.getTextureNode();
 
@@ -129,8 +124,7 @@ const blurMultiplier = uniform(1.5)
 
 const focus = absoluteDepth.sub(focusDistance).abs().smoothstep(focusStart, focusStart.add(focusAmplitude))
 const blur = focus.mul(blurMultiplier).min(blurMax)
-const focusBlurPass = colorPassNode.gaussianBlur(4)
-focusBlurPass.directionNode = blur
+const focusBlurPass = gaussianBlur(colorPassNode, blur, 4)
 
 // Output
 postProcessing.outputNode = focusBlurPass
@@ -143,7 +137,7 @@ gui.add(blurMultiplier, 'value', 0, 10, 0.001).name('blurMultiplier')
 /**
  * Scenery
  */
-const sceneryMaterial = new MeshStandardNodeMaterial()
+const sceneryMaterial = new THREE.MeshStandardNodeMaterial()
 const sceneryGeoemtry = new THREE.BoxGeometry(1, 1, 1)
 sceneryGeoemtry.translate(0, 0.5, 0)
 const cubeA = new THREE.Mesh(sceneryGeoemtry, sceneryMaterial)
@@ -184,12 +178,12 @@ floor.rotation.x = - Math.PI * 0.5
 floor.position.y = 0
 scene.add(floor)
 
-scene.fogNode = rangeFog(color('#1b191f'), 20, 30)
+scene.fogNode = fog(color('#1b191f'), rangeFogFactor(20, 30))
 
 /**
  * Animate
  */
-const clock = new THREE.Clock()
+const clock = new THREE.Timer()
 
 const tick = () =>
 {
@@ -198,10 +192,11 @@ const tick = () =>
 
     // Render
     // renderer.renderAsync(scene, camera)
-    postProcessing.renderAsync()
+    postProcessing.render()
 
     // Call tick again on the next frame
     window.requestAnimationFrame(tick)
 }
 
+await renderer.init()
 tick()

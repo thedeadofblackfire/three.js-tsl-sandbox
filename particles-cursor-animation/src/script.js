@@ -1,9 +1,7 @@
-import * as THREE from 'three'
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import * as THREE from 'three/webgpu'
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import GUI from 'lil-gui'
-import WebGPURenderer from 'three/examples/jsm/renderers/webgpu/WebGPURenderer.js'
-import { If, PI, PI2, SpriteNodeMaterial, color, cos, discard, instanceIndex, mix, mod, positionGeometry, sin, storage, texture, tslFn, uniform, uv, varying, vec3, vec4, vertexIndex } from 'three/examples/jsm/nodes/Nodes.js'
-import StorageInstancedBufferAttribute from 'three/examples/jsm/renderers/common/StorageInstancedBufferAttribute.js'
+import { If, PI, PI2, color, cos, hash, instanceIndex, mix, mod, positionGeometry, sin, storage, texture, Fn as tslFn, uniform, uv, varying, vec3, vec4, vertexIndex } from 'three/tsl'
 
 /**
  * Base
@@ -60,7 +58,7 @@ controls.enableDamping = true
 /**
  * Renderer
  */
-const renderer = new WebGPURenderer({
+const renderer = new THREE.WebGPURenderer({
     canvas: canvas
 })
 renderer.setSize(sizes.width, sizes.height)
@@ -71,6 +69,7 @@ gui.addColor({ color: clearColor.getHex(THREE.SRGBColorSpace) }, 'color')
    .onChange((value) => { renderer.setClearColor(value) })
 
 renderer.setClearColor(clearColor.getHex(THREE.SRGBColorSpace))
+await renderer.init()
 
 /**
  * Displacement
@@ -126,7 +125,7 @@ displacement.texture = new THREE.CanvasTexture(displacement.canvas)
  * Particles
  */
 // Setup
-const material = new SpriteNodeMaterial()
+const material = new THREE.SpriteNodeMaterial()
 const size = 128
 const count = size * size
 
@@ -149,8 +148,8 @@ for(let i = 0; i < count; i++)
     uvArray[i2 + 1] = uvY
 }
 
-const positionAttribute = storage(new StorageInstancedBufferAttribute(positionArray, 3), 'vec3', count).toAttribute()
-const uvAttribute = storage(new StorageInstancedBufferAttribute(uvArray, 2), 'vec2', count).toAttribute()
+const positionAttribute = storage(new THREE.StorageInstancedBufferAttribute(positionArray, 3), 'vec3', count).toAttribute()
+const uvAttribute = storage(new THREE.StorageInstancedBufferAttribute(uvArray, 2), 'vec2', count).toAttribute()
 
 // Picture
 const pictureTexture = textureLoader.load('./picture-1.png')
@@ -163,7 +162,7 @@ const colorB = uniform(color('#6a1599'))
 // Displacement
 const displacementTexture = texture(displacement.texture, uvAttribute)
 const displacementStrength = displacementTexture.smoothstep(0.1, 0.3)
-const displacementAngle = instanceIndex.hash().mul(PI2)
+const displacementAngle = hash(instanceIndex).mul(PI2)
 const displacementPosition = vec3(cos(displacementAngle).mul(0.2), sin(displacementAngle).mul(0.2), 1).normalize().mul(displacementStrength).mul(3)
 
 // Position
@@ -241,7 +240,7 @@ const tick = () =>
     displacement.texture.needsUpdate = true
 
     // Render
-    renderer.renderAsync(scene, camera)
+    renderer.render(scene, camera)
 
     // Call tick again on the next frame
     window.requestAnimationFrame(tick)

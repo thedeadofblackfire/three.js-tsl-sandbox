@@ -1,5 +1,5 @@
 import * as THREE from 'three/webgpu'
-import { mx_noise_float, color, float, mix, smoothstep, storage, tslFn, uniform, uv, varying, vec3, vec4 } from 'three/webgpu'
+import { mx_noise_float, color, float, mix, smoothstep, storage, Fn as tslFn, uniform, uv, varying, vec3, vec4 } from 'three/tsl'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js'
@@ -224,6 +224,7 @@ const renderer = new THREE.WebGPURenderer({
 renderer.setSize(sizes.width, sizes.height)
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 renderer.setClearColor('#111111')
+await renderer.init()
 
 /**
  * Animate
@@ -234,7 +235,7 @@ const tick = () =>
     controls.update()
 
     // Render
-    renderer.renderAsync(scene, camera)
+    renderer.render(scene, camera)
 
     // Call tick again on the next frame
     window.requestAnimationFrame(tick)

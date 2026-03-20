@@ -1,10 +1,7 @@
-import * as THREE from 'three'
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
-import { Timer } from 'three/addons/misc/Timer.js'
+import * as THREE from 'three/webgpu'
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import GUI from 'lil-gui'
-
-import WebGPURenderer from 'three/examples/jsm/renderers/webgpu/WebGPURenderer.js'
-import { MeshStandardNodeMaterial, cubeTexture, normalLocal, normalMap, positionLocal, texture, triplanarTexture, uv, varying, vec3, vec4 } from 'three/examples/jsm/nodes/Nodes.js'
+import { normalMap, texture, triplanarTexture } from 'three/tsl'
 
 /**
  * Base
@@ -40,7 +37,7 @@ floorNormalTexture.anisotropy = 8
 /**
  * Test
  */
-const material = new MeshStandardNodeMaterial()
+const material = new THREE.MeshStandardNodeMaterial()
 
 const colorTexture = texture(floorColorTexture)
 material.colorNode = triplanarTexture(colorTexture, null, null, 0.5)
@@ -102,7 +99,7 @@ controls.enableDamping = true
 /**
  * Renderer
  */
-const renderer = new WebGPURenderer({
+const renderer = new THREE.WebGPURenderer({
     canvas: canvas
 })
 renderer.setSize(sizes.width, sizes.height)
@@ -112,7 +109,7 @@ renderer.setClearColor('#000000')
 /**
  * Animate
  */
-const timer = new Timer()
+const timer = new THREE.Timer()
 
 const tick = () =>
 {
@@ -124,10 +121,11 @@ const tick = () =>
     controls.update()
 
     // Render
-    renderer.renderAsync(scene, camera)
+    renderer.render(scene, camera)
 
     // Call tick again on the next frame
     window.requestAnimationFrame(tick)
 }
 
+await renderer.init()
 tick()

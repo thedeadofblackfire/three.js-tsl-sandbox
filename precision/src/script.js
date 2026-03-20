@@ -69,7 +69,7 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
  * Dummy
  */
 // Material
-const material = new THREE.MeshBasicMaterial()
+const material = new THREE.MeshBasicNodeMaterial()
 material.precision = 'mediump'
 console.log(material.precision)
 
@@ -78,13 +78,13 @@ const timeFrequency = uniform(0.5)
 const positionFrequency = uniform(2)
 const intensityFrequency = uniform(0.5)
 
-// // Position
-// const oscillation = sin(time.mul(timeFrequency).add(positionLocal.y.mul(positionFrequency))).mul(intensityFrequency)
-// material.positionNode = vec3(
-//     positionLocal.x.add(oscillation),
-//     positionLocal.y,
-//     positionLocal.z
-// )
+// Position
+const oscillation = sin(time.mul(timeFrequency).add(positionLocal.y.mul(positionFrequency))).mul(intensityFrequency)
+material.positionNode = vec3(
+    positionLocal.x.add(oscillation),
+    positionLocal.y,
+    positionLocal.z
+)
 
 // Color
 material.colorNode = vec4(

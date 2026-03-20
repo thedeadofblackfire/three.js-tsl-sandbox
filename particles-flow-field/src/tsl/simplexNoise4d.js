@@ -1,6 +1,6 @@
 // Three.js Transpiler r167
 
-import { vec4, mod, tslFn, float, floor, overloadingFn, mul, sub, vec3, fract, abs, dot, lessThan, vec2, step, clamp, max } from 'three/webgpu';
+import { vec4, mod, Fn as tslFn, float, floor, overloadingFn, mul, sub, vec3, fract, abs, dot, lessThan, vec2, step, clamp, max } from 'three/tsl';
 
 export const permute_0 = /*#__PURE__*/ tslFn( ( [ x_immutable ] ) => {
 

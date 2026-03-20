@@ -1,7 +1,7 @@
 import * as THREE from 'three/webgpu'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import GUI from 'lil-gui'
-import { If, float, instanceIndex, min, smoothstep, storage, timerDelta, timerGlobal, tslFn, uint, uniform, uv, vec3, vec4 } from 'three/webgpu'
+import { If, float, hash, instanceIndex, min, smoothstep, storage, deltaTime as timerDelta, time as timerGlobal, Fn as tslFn, uint, uniform, uv, vec3, vec4 } from 'three/tsl'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js'
 import { simplexNoise4d } from './tsl/simplexNoise4d.js'
@@ -72,6 +72,7 @@ const renderer = new THREE.WebGPURenderer({
 renderer.setSize(sizes.width, sizes.height)
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 renderer.setClearColor('#29191f')
+await renderer.init()
 
 /**
  * Cursor interaction
@@ -132,7 +133,7 @@ const init = tslFn(() =>
     const strength = strengthBuffer.element(instanceIndex)
     
     position.assign(basePosition)
-    life.assign(instanceIndex.add(uint(Math.random() * 0xffffff)).hash())
+    life.assign(hash(instanceIndex.add(uint(Math.random() * 0xffffff))))
     strength.assign(0)
 })
 const initCompute = init().compute(baseGeometry.count)
@@ -142,8 +143,8 @@ renderer.compute(initCompute)
 const update = tslFn(() =>
 {
     // Setup
-    const time = timerGlobal().mul(flowFieldTimeFrequency)
-    const delta = timerDelta()
+    const time = timerGlobal.mul(flowFieldTimeFrequency)
+    const delta = timerDelta
 
     // Buffers
     const basePosition = basePositionBuffer.element(instanceIndex)
@@ -197,7 +198,7 @@ material.scaleNode = tslFn(() =>
         smoothstep(0, 0.1, life),
         smoothstep(1, 0.7, life)
     )
-    scale.mulAssign(instanceIndex.hash().remap(0.25, 1).mul(size))
+    scale.mulAssign(hash(instanceIndex).remap(0.25, 1).mul(size))
 
     return scale
 })()
@@ -239,7 +240,7 @@ const tick = () =>
 
     // Render
     renderer.compute(updateCompute)
-    renderer.renderAsync(scene, camera)
+    renderer.render(scene, camera)
 
     // Call tick again on the next frame
     window.requestAnimationFrame(tick)
