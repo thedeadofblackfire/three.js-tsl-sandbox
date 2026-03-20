@@ -1,7 +1,7 @@
 import * as THREE from 'three/webgpu'
 import GUI from 'lil-gui'
-import { mx_noise_float, MeshPhysicalNodeMaterial, color, cross, getRoughness, materialMetalness, materialRoughness, mix, modelNormalMatrix, normalLocal, normalWorld, positionLocal, roughness, sin, smoothstep, tangentLocal, timerGlobal, tslFn, uniform, varyingProperty, vec3, vec4 } from 'three/webgpu'
-import { RGBELoader } from 'three/addons/loaders/RGBELoader.js'
+import { mx_noise_float, color, cross, getRoughness, materialMetalness, materialRoughness, mix, modelNormalMatrix, normalLocal, normalWorld, positionLocal, roughness, sin, smoothstep, tangentLocal, time as timerGlobal, Fn as tslFn, uniform, varyingProperty, vec3, vec4 } from 'three/tsl'
+import { HDRLoader } from 'three/addons/loaders/HDRLoader.js'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js'
 import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js'
@@ -21,7 +21,7 @@ const canvas = document.querySelector('canvas.webgl')
 const scene = new THREE.Scene()
 
 // Loaders
-const rgbeLoader = new RGBELoader()
+const rgbeLoader = new HDRLoader()
 const dracoLoader = new DRACOLoader()
 dracoLoader.setDecoderPath('./draco/')
 const gltfLoader = new GLTFLoader()
@@ -30,7 +30,7 @@ gltfLoader.setDRACOLoader(dracoLoader)
 /**
  * Material
  */
-const material = new MeshPhysicalNodeMaterial({
+const material = new THREE.MeshPhysicalNodeMaterial({
     metalness: 1,
     roughness: 0.7,
     transmission: 0,
@@ -58,7 +58,7 @@ const vWobble = varyingProperty('vec3')
 // Get wobble based using warped simplex noise
 const getWobble = tslFn(([position]) =>
 {
-    const time = timerGlobal()
+    const time = timerGlobal
 
     // Warped position
     const warpedNoise = simplexNoise4d(vec4(
@@ -238,6 +238,7 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap
 renderer.setSize(sizes.width, sizes.height)
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 renderer.setClearColor('#000000')
+await renderer.init()
 
 /**
  * Animate
@@ -248,7 +249,7 @@ const tick = () =>
     controls.update()
 
     // Render
-    renderer.renderAsync(scene, camera)
+    renderer.render(scene, camera)
 
     // Call tick again on the next frame
     window.requestAnimationFrame(tick)

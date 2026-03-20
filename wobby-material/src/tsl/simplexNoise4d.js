@@ -1,6 +1,6 @@
 // Three.js Transpiler r165
 
-import { vec4, mod, tslFn, float, floor, overloadingFn, mul, sub, vec3, fract, abs, dot, vec2, step, clamp, max, If } from 'three/webgpu';
+import { vec4, mod, Fn as tslFn, float, floor, overloadingFn, mul, sub, vec3, fract, abs, dot, vec2, step, clamp, max, If } from 'three/tsl';
 
 const permute_0 = tslFn( ( [ x_immutable ] ) => {
 
@@ -48,10 +48,10 @@ const grad4 = tslFn( ( [ j_immutable, ip_immutable ] ) => {
 	p.xyz.assign( floor( fract( vec3( j ).mul( ip.xyz ) ).mul( 7.0 ) ).mul( ip.z ).sub( 1.0 ) );
 	p.w.assign( sub( 1.5, dot( abs( p.xyz ), ones.xyz ) ) );
 
-	s.x = s.x.lessThanAssign(p.x, 0.0, 1)
-	s.y = s.y.lessThanAssign(p.y, 0.0, 1)
-	s.z = s.z.lessThanAssign(p.z, 0.0, 1)
-	s.w = s.w.lessThanAssign(p.w, 0.0, 1)
+	s.x.assign(float(p.x.lessThan(0.0)))
+	s.y.assign(float(p.y.lessThan(0.0)))
+	s.z.assign(float(p.z.lessThan(0.0)))
+	s.w.assign(float(p.w.lessThan(0.0)))
 
 	p.xyz.assign( p.xyz.add( s.xyz.mul( 2.0 ).sub( 1.0 ).mul( s.www ) ) );
 
