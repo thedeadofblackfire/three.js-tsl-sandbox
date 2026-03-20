@@ -1,8 +1,7 @@
 import GUI from 'lil-gui'
-import * as THREE from 'three'
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
-import { SpriteNodeMaterial, color, cos, float, mix, range, sin, timerGlobal, uniform, uv, vec3, vec4 } from 'three/examples/jsm/nodes/Nodes.js'
-import WebGPURenderer from 'three/examples/jsm/renderers/webgpu/WebGPURenderer.js'
+import * as THREE from 'three/webgpu'
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+import { color, cos, float, mix, range, sin, time as timerGlobal, uniform, uv, vec3, vec4 } from 'three/tsl'
 
 /**
  * Base
@@ -22,7 +21,7 @@ const scene = new THREE.Scene()
 /**
  * Galaxy
  */
-const particlesMaterial = new SpriteNodeMaterial({
+const particlesMaterial = new THREE.SpriteNodeMaterial({
     transparent: true,
     depthWrite: false,
     blending: THREE.AdditiveBlending
@@ -32,7 +31,7 @@ const particlesMaterial = new SpriteNodeMaterial({
 particlesMaterial.scaleNode = range(0.001, 0.08)
 
 // Position
-const time = timerGlobal(0.5)
+const time = timerGlobal.mul(0.5)
 
 const radiusRatio = range(0, 1)
 const radius = radiusRatio.pow(1.5).mul(5)
@@ -112,7 +111,7 @@ controls.enableDamping = true
 /**
  * Renderer
  */
-const renderer = new WebGPURenderer({
+const renderer = new THREE.WebGPURenderer({
     canvas: canvas,
     antialias: true
 })
@@ -132,18 +131,17 @@ gui
 /**
  * Animate
  */
-const clock = new THREE.Clock()
-
 const tick = () =>
 {
     // Update controls
     controls.update()
 
     // Render
-    renderer.renderAsync(scene, camera)
+    renderer.render(scene, camera)
 
     // Call tick again on the next frame
     window.requestAnimationFrame(tick)
 }
 
+await renderer.init()
 tick()

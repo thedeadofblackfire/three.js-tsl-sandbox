@@ -7,10 +7,10 @@ import {
     mix,
     mul,
     step,
-    tslFn,
+    Fn as tslFn,
     vec3,
     vec4,
-} from 'three/examples/jsm/nodes/Nodes.js'
+} from 'three/tsl'
 
 const permute = tslFn((input) => {
     return fract(add(mul(input.x, 34), 1).mul(input.x).div(289)).mul(289)
