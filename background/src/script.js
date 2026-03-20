@@ -1,8 +1,7 @@
-import * as THREE from 'three'
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import * as THREE from 'three/webgpu'
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import GUI from 'lil-gui'
-import WebGPURenderer from 'three/examples/jsm/renderers/webgpu/WebGPURenderer.js'
-import { MeshStandardNodeMaterial, color, normalWorld, positionLocal, uniform, vec4 } from 'three/examples/jsm/nodes/Nodes.js'
+import { normalWorld, uniform } from 'three/tsl'
 
 /**
  * Base
@@ -27,7 +26,7 @@ scene.backgroundNode = normalWorld.y.smoothstep(-1, 1).mix(uniform(colorBottom),
 /**
  * Test
  */
-const material = new MeshStandardNodeMaterial()
+const material = new THREE.MeshStandardNodeMaterial()
 
 const geometry = new THREE.SphereGeometry(2, 32, 32)
 const mesh = new THREE.Mesh(geometry, material)
@@ -85,7 +84,7 @@ controls.enableDamping = true
 /**
  * Renderer
  */
-const renderer = new WebGPURenderer({
+const renderer = new THREE.WebGPURenderer({
     canvas: canvas
 })
 renderer.setSize(sizes.width, sizes.height)
@@ -101,10 +100,11 @@ const tick = () =>
     controls.update()
 
     // Render
-    renderer.renderAsync(scene, camera)
+    renderer.render(scene, camera)
 
     // Call tick again on the next frame
     window.requestAnimationFrame(tick)
 }
 
+await renderer.init()
 tick()
