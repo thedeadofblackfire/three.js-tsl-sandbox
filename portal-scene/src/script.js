@@ -1,10 +1,9 @@
 import * as THREE from 'three/webgpu'
-import { float, /*depthTexture, viewportDepthTexture,*/ sqrt, vec2, vec3, vec4, viewportResolution, viewportSharedTexture, viewportTopLeft, range, tslFn, instanceIndex, modelWorldMatrix, cameraProjectionMatrix, cameraFar, uv, step, max, uniform, color, cameraNear, positionLocal, modelViewMatrix, timerGlobal, sin } from 'three/webgpu'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js'
-import { Timer } from 'three/addons/Addons.js'
 import GUI from 'lil-gui'
+import { float, sqrt, vec2, vec3, vec4, screenSize, viewportSharedTexture, screenUV, range, Fn as tslFn, hash, instanceIndex, modelWorldMatrix, cameraProjectionMatrix, cameraFar, uv, step, max, uniform, color, cameraNear, positionLocal, modelViewMatrix, time as timerGlobal, sin } from 'three/tsl'
 
 /**
  * Base
@@ -50,7 +49,7 @@ const x = range(-2, 2)
 let y = range(0, 4)
 const z = range(-2, 2)
 
-y = y.add(sin(timerGlobal(0.2).add(instanceIndex.hash().mul(99))).mul(baseScale).mul(2))
+y = y.add(sin(timerGlobal.mul(0.2).add(hash(instanceIndex).mul(99))).mul(baseScale).mul(2))
 
 /* Start: stuff I stolen from SpriteNodeMaterial, mixed with sunag code and don't understand */
 let modelViewPosition = modelViewMatrix.mul(vec3(x, y, z))
@@ -63,10 +62,10 @@ const modelViewProjection = cameraProjectionMatrix.mul(modelViewPosition)
 
 firefliesMaterial.vertexNode = modelViewProjection
 
-const customLinearDepth = modelViewProjection.w.varying().sub(cameraNear).div(cameraFar)
+const customLinearDepth = modelViewProjection.w.toVarying().sub(cameraNear).div(cameraFar)
 /* End: stuff I stolen from SpriteNodeMaterial, mixed with sunag code and don't understand */
 
-firefliesMaterial.backdropNode = viewportSharedTexture(viewportTopLeft.xy)
+firefliesMaterial.backdropNode = viewportSharedTexture(screenUV)
 
 // firefliesMaterial.backdropAlphaNode = tslFn(() =>
 // {
@@ -99,24 +98,23 @@ const portalMaterial = new THREE.MeshBasicNodeMaterial({ side: THREE.DoubleSide,
 
 // Sobel
 // From: https://gist.github.com/Hebali/6ebfc66106459aacee6a9fac029d0115
-const w = float(1).div(viewportResolution.x)
-const h = float(1).div(viewportResolution.y)
+const w = float(1).div(screenSize.x)
+const h = float(1).div(screenSize.y)
 
-const n0 = viewportSharedTexture(viewportTopLeft.xy.add(vec2(w.negate(), h.negate())))
-const n1 = viewportSharedTexture(viewportTopLeft.xy.add(vec2(0.0, h.negate())))
-const n2 = viewportSharedTexture(viewportTopLeft.xy.add(vec2(w, h.negate())))
-const n3 = viewportSharedTexture(viewportTopLeft.xy.add(vec2(w.negate(), 0.0)))
-const n5 = viewportSharedTexture(viewportTopLeft.xy.add(vec2(w, 0.0)))
-const n6 = viewportSharedTexture(viewportTopLeft.xy.add(vec2(w.negate(), h)))
-const n7 = viewportSharedTexture(viewportTopLeft.xy.add(vec2(0.0, h)))
-const n8 = viewportSharedTexture(viewportTopLeft.xy.add(vec2(w, h)))
+const n0 = viewportSharedTexture(screenUV.add(vec2(w.negate(), h.negate())))
+const n1 = viewportSharedTexture(screenUV.add(vec2(0.0, h.negate())))
+const n2 = viewportSharedTexture(screenUV.add(vec2(w, h.negate())))
+const n3 = viewportSharedTexture(screenUV.add(vec2(w.negate(), 0.0)))
+const n5 = viewportSharedTexture(screenUV.add(vec2(w, 0.0)))
+const n6 = viewportSharedTexture(screenUV.add(vec2(w.negate(), h)))
+const n7 = viewportSharedTexture(screenUV.add(vec2(0.0, h)))
+const n8 = viewportSharedTexture(screenUV.add(vec2(w, h)))
 
 const sobel_edge_h = n2.add(n5.mul(2)).add(n8).sub(n0.add(n3.mul(2)).add(n6))
 const sobel_edge_v = n0.add(n1.mul(2)).add(n2).sub(n6.add(n7.mul(2)).add(n8))
 const sobel = sqrt((sobel_edge_h.mul(sobel_edge_h)).add(sobel_edge_v.mul(sobel_edge_v)))
 
-// Backdrop
-portalMaterial.backdropNode = vec4(vec3(sobel.rgb.pow(2)), 1)
+portalMaterial.outputNode = vec4(vec3(sobel.rgb.pow(2)), 1)
 
 /**
  * Model
@@ -209,7 +207,7 @@ renderer.setClearColor('#000000')
 /**
  * Animate
  */
-const timer = new Timer()
+const timer = new THREE.Timer()
 const tick = () =>
 {
     // Timer
@@ -227,10 +225,11 @@ const tick = () =>
     controls.update()
 
     // Render
-    renderer.renderAsync(scene, camera)
+    renderer.render(scene, camera)
 
     // Call tick again on the next frame
     window.requestAnimationFrame(tick)
 }
 
+await renderer.init()
 tick()
