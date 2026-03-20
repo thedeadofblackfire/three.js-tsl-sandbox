@@ -1,8 +1,7 @@
 import * as THREE from 'three/webgpu'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
-import { Timer } from 'three/addons/misc/Timer.js'
 import GUI from 'lil-gui'
-import { step, normalWorld, output, texture, vec3, vec4, normalize, positionWorld, cameraPosition, color, uniform, mix, uv, max } from 'three/webgpu'
+import { step, normalWorld, output, texture, vec3, vec4, normalize, positionWorld, cameraPosition, color, uniform, mix, uv, max, bumpMap } from 'three/tsl'
 
 /**
  * Base
@@ -108,7 +107,7 @@ const bumpElevation = max(
     texture(bumpRoughnessCloudsTexture).r,
     cloudsStrength
 ).mul(1)
-globeMaterial.normalNode = bumpElevation.bumpMap()
+globeMaterial.normalNode = bumpMap(bumpElevation)
 
 // Mesh
 const sphereGeometry = new THREE.SphereGeometry(1, 64, 64)
@@ -179,7 +178,7 @@ renderer.setClearColor('#000000')
 /**
  * Animate
  */
-const timer = new Timer()
+const timer = new THREE.Timer()
 
 const tick = () =>
 {
@@ -194,10 +193,11 @@ const tick = () =>
     controls.update()
 
     // Render
-    renderer.renderAsync(scene, camera)
+    renderer.render(scene, camera)
 
     // Call tick again on the next frame
     window.requestAnimationFrame(tick)
 }
 
+await renderer.init()
 tick()
