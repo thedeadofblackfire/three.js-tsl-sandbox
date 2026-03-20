@@ -1,6 +1,6 @@
 import GUI from 'lil-gui'
-import * as THREE from 'three'
-import { color, uniform, rangeFog } from 'three'
+import * as THREE from 'three/webgpu'
+import { color, uniform, fog, rangeFogFactor } from 'three/tsl'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import MeshGridMaterial, { MeshGridMaterialLine } from './MeshGridMaterial.js'
@@ -19,7 +19,7 @@ const canvas = document.querySelector('canvas.webgl')
 // Scene
 const scene = new THREE.Scene()
 const fogColor = uniform(color('#1b191f'))
-const fogNode = rangeFog(fogColor, 20, 50)
+const fogNode = fog(fogColor, rangeFogFactor(20, 50))
 scene.fogNode = fogNode
 
 gui.add({ fog: true }, 'fog').onChange(value =>
@@ -192,11 +192,12 @@ gltfLoader.load(
 /**
  * Animate
  */
-const clock = new THREE.Clock()
+const timer = new THREE.Timer()
 
 const tick = () =>
 {
-    const elapsedTime = clock.getElapsedTime()
+    timer.update()
+    const elapsedTime = timer.getElapsed()
 
     // Update controls
     controls.update()
@@ -214,10 +215,11 @@ const tick = () =>
     }
 
     // Render
-    renderer.renderAsync(scene, camera)
+    renderer.render(scene, camera)
 
     // Call tick again on the next frame
     window.requestAnimationFrame(tick)
 }
 
+await renderer.init()
 tick()
