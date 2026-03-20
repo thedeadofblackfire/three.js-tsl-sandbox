@@ -1,8 +1,8 @@
 import GUI from 'lil-gui'
-import * as THREE from 'three'
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
-import { MeshBasicNodeMaterial, PI, PI2, color, dot, mix, positionLocal, rangeFog, sin, step, texture, timerGlobal, tslFn, uv, vec2, vec3, vec4 } from 'three/examples/jsm/nodes/Nodes.js'
-import WebGPURenderer from 'three/examples/jsm/renderers/webgpu/WebGPURenderer.js'
+import * as THREE from 'three/webgpu'
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+import { MeshBasicNodeMaterial } from 'three/webgpu'
+import { PI2, color, dot, fog, mix, rangeFogFactor, sin, step, texture, time, Fn as tslFn, uv, vec2, vec3, vec4 } from 'three/tsl'
 import gridMaterial from './GridMaterial'
 
 /**
@@ -19,7 +19,7 @@ const canvas = document.querySelector('canvas.webgl')
 
 // Scene
 const scene = new THREE.Scene()
-scene.fogNode = rangeFog(color('#1b191f'), 2, 15)
+scene.fogNode = fog(color('#1b191f'), rangeFogFactor(2, 15))
 
 // Loaders
 const textureLoader = new THREE.TextureLoader()
@@ -58,7 +58,7 @@ gradient.update = () =>
 
     gradient.context.fillStyle = fillGradient
     gradient.context.fillRect(0, 0, gradient.element.width, gradient.element.height)
-    
+
     gradient.texture.needsUpdate = true
 }
 
@@ -87,8 +87,6 @@ const spherizeUv = tslFn(([input, center, strength, offset]) =>
 
 material.colorNode = tslFn(() =>
 {
-    const time = timerGlobal(1)
-
     // Main UV
     const mainUv = uv().toVar()
     mainUv.assign(spherizeUv(mainUv, vec2(0.5), 10, vec2(0)).mul(0.6).add(0.2)) // Spherize
@@ -176,7 +174,7 @@ controls.enableDamping = true
 /**
  * Renderer
  */
-const renderer = new WebGPURenderer({
+const renderer = new THREE.WebGPURenderer({
     canvas: canvas,
     antialias: true
 })
@@ -196,20 +194,17 @@ gui
 /**
  * Animate
  */
-const clock = new THREE.Clock()
-
 const tick = () =>
 {
-    const elapsedTime = clock.getElapsedTime()
-
     // Update controls
     controls.update()
 
     // Render
-    renderer.renderAsync(scene, camera)
+    renderer.render(scene, camera)
 
     // Call tick again on the next frame
     window.requestAnimationFrame(tick)
 }
 
+await renderer.init()
 tick()
