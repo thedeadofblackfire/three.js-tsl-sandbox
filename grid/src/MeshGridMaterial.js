@@ -61,7 +61,7 @@ const toAntialiasedGrid = Fn(([uv, scale, thickness, offset, cross, derivateMask
 	const crossMask = mix(crossGrid.x, 1, crossGrid.y).oneMinus()
 
     const gridUV = referenceUv.fract().mul(2).sub(1).abs().oneMinus()
-    let grid2 = smoothstep(drawWidth.add(lineAA), drawWidth.sub(lineAA), gridUV);
+    let grid2 = smoothstep(drawWidth.sub(lineAA), drawWidth.add(lineAA), gridUV).oneMinus();
     grid2 = grid2.mul(clamp(lineWidth.div(drawWidth), 0, 1))
     grid2 = mix(grid2, lineWidth, clamp(uvDeriv.mul(2).sub(1), 0, 1)).mul(crossMask)
     return mix(grid2.x, 1, grid2.y)

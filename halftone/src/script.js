@@ -1,8 +1,8 @@
 import * as THREE from 'three/webgpu'
-import { color, mix, normalWorld, output, tslFn, uniform, vec4, viewportCoordinate, viewportResolution } from 'three/webgpu'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import GUI from 'lil-gui'
+import { color, mix, normalWorld, output, Fn as tslFn, rotate, uniform, vec4, viewportCoordinate, screenSize } from 'three/tsl'
 
 /**
  * Base
@@ -58,8 +58,8 @@ const halftonesSettings = [
 const getHalftoned = tslFn(([count, color, direction, edgeStart, edgeEnd, maxRadius, alphaStart, alphaEnd]) =>
 {
     // Grid UV
-    let gridUv = viewportCoordinate.xy.div(viewportResolution.yy).mul(count)
-    gridUv = gridUv.rotate(Math.PI * 0.25).mod(1)
+    let gridUv = viewportCoordinate.xy.div(screenSize.yy).mul(count)
+    gridUv = rotate(gridUv, Math.PI * 0.25).mod(1)
 
     // Effect strength
     const strength = normalWorld.dot(direction.normalize()).remapClamp(-1, 1, edgeEnd, edgeStart)
@@ -226,20 +226,17 @@ gui
 /**
  * Animate
  */
-const clock = new THREE.Clock()
-
 const tick = () =>
 {
-    const elapsedTime = clock.getElapsedTime()
-
     // Update controls
     controls.update()
 
     // Render
-    renderer.renderAsync(scene, camera)
+    renderer.render(scene, camera)
 
     // Call tick again on the next frame
     window.requestAnimationFrame(tick)
 }
 
+await renderer.init()
 tick()
