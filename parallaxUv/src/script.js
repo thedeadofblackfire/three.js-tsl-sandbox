@@ -1,9 +1,7 @@
-import * as THREE from 'three'
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
-import { Timer } from 'three/addons/misc/Timer.js'
+import * as THREE from 'three/webgpu'
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import GUI from 'lil-gui'
-import WebGPURenderer from 'three/examples/jsm/renderers/webgpu/WebGPURenderer.js'
-import { float, loop, MeshBasicNodeMaterial, MeshStandardNodeMaterial, mix, normalMap, output, parallaxUV, positionLocal, step, texture, tslFn, uniform, uv, vec3, vec4 } from 'three/examples/jsm/nodes/Nodes.js'
+import { float, Loop as loop, mix, normalMap, output, parallaxUV, positionLocal, step, texture, Fn as tslFn, uniform, uv, vec3, vec4 } from 'three/tsl'
 
 /**
  * Base
@@ -38,7 +36,7 @@ normalTexture.wrapS = THREE.RepeatWrapping
 normalTexture.wrapT = THREE.RepeatWrapping
 
 // Material
-const material = new MeshStandardNodeMaterial()
+const material = new THREE.MeshStandardNodeMaterial()
 
 // Uniforms
 // const parallaxOffset = uniform(0.2)
@@ -164,29 +162,24 @@ controls.enableDamping = true
 /**
  * Renderer
  */
-const renderer = new WebGPURenderer({
+const renderer = new THREE.WebGPURenderer({
     canvas: canvas
 })
 renderer.setSize(sizes.width, sizes.height)
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 renderer.setClearColor('#000000')
+await renderer.init()
 
 /**
  * Animate
  */
-const timer = new Timer()
-
 const tick = () =>
 {
-    // Timer
-    timer.update()
-    const elapsedTime = timer.getElapsed()
-
     // Update controls
     controls.update()
 
     // Render
-    renderer.renderAsync(scene, camera)
+    renderer.render(scene, camera)
 
     // Call tick again on the next frame
     window.requestAnimationFrame(tick)

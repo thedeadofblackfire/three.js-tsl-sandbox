@@ -65,6 +65,7 @@ const renderer = new THREE.WebGPURenderer({
 renderer.setSize(sizes.width, sizes.height)
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 renderer.setClearColor(0x000000)
+await renderer.init()
 
 /**
  * Dummy

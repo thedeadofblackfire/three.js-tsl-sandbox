@@ -1,5 +1,4 @@
 import restart from 'vite-plugin-restart'
-import topLevelAwait from 'vite-plugin-top-level-await'
 
 export default {
     root: 'src/', // Sources files (typically where index.html is)
@@ -13,11 +12,11 @@ export default {
     {
         outDir: '../dist', // Output in the dist/ folder
         emptyOutDir: true, // Empty the folder first
-        sourcemap: true // Add sourcemap
+        sourcemap: true, // Add sourcemap
+        target: 'esnext' // Support top-level await
     },
     plugins:
     [
         restart({ restart: [ '../static/**', ] }), // Restart server on static file change
-        topLevelAwait()
     ],
 }

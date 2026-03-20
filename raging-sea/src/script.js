@@ -1,7 +1,6 @@
 import * as THREE from 'three/webgpu'
-import { float, mx_noise_float, loop, color, positionLocal, sin, vec2, vec3, vec4, mul, timerLocal, uniform, tslFn, modelNormalMatrix } from 'three/webgpu'
+import { float, mx_noise_float, Loop as loop, color, positionLocal, sin, vec2, vec3, vec4, mul, time as timerLocal, uniform, Fn as tslFn, modelNormalMatrix } from 'three/tsl'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
-import { Timer } from 'three/addons/misc/Timer.js'
 import GUI from 'lil-gui'
 
 /**
@@ -58,7 +57,7 @@ wavesFolder.add(normalComputeShift, 'value', 0, 0.1, 0.0001).name('normalCompute
 // Waves elevation
 const wavesElevation = tslFn(([position]) =>
 {
-    const time = timerLocal()
+    const time = timerLocal
 
     const elevation = mul(
         sin(position.x.mul(largeWavesFrequency.x).add(time.mul(largeWavesSpeed))),
@@ -173,23 +172,18 @@ const renderer = new THREE.WebGPURenderer({
 renderer.setSize(sizes.width, sizes.height)
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 renderer.setClearColor('#000000')
+await renderer.init()
 
 /**
  * Animate
  */
-const timer = new Timer()
-
 const tick = () =>
 {
-    // Timer
-    timer.update()
-    const elapsedTime = timer.getElapsed()
-
     // Update controls
     controls.update()
 
     // Render
-    renderer.renderAsync(scene, camera)
+    renderer.render(scene, camera)
 
     // Call tick again on the next frame
     window.requestAnimationFrame(tick)
