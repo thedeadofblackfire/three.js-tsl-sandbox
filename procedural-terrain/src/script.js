@@ -1,5 +1,5 @@
 import * as THREE from 'three/webgpu'
-import { max, uv, mx_noise_float, color, cross, dot, float, modelNormalMatrix, positionLocal, sign, smoothstep, step, tslFn, uniform, varyingProperty, vec2, vec3, loop } from 'three/webgpu'
+import { max, uv, mx_noise_float, color, cross, dot, float, modelNormalMatrix, positionLocal, sign, smoothstep, step, Fn as tslFn, uniform, varyingProperty, vec2, vec3, Loop } from 'three/tsl'
 import { RGBELoader } from 'three/addons/loaders/RGBELoader.js'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { Brush, Evaluator, SUBTRACTION } from 'three-bvh-csg'
@@ -142,7 +142,7 @@ const getElevation = tslFn(([position]) =>
     warpedPosition.addAssign(mx_noise_float(warpedPosition.mul(positionFrequency).mul(warpFrequency), 1, 0).mul(warpStrength))
     
     const elevation = float(0).toVar()
-    loop({ type: 'float', start: 1, end: noiseIterations, condition: '<=' }, ({ i }) =>
+    Loop({ type: 'float', start: 1, end: noiseIterations, condition: '<=' }, ({ i }) =>
     {
         const noiseInput = warpedPosition.mul(positionFrequency).mul(i.mul(2)).add(i.mul(987))
         const noise = mx_noise_float(noiseInput, 1, 0).div(i.add(1).mul(2))
@@ -246,7 +246,7 @@ terrainFolder.addColor({ color: colorRock.value.getHexString(THREE.SRGBColorSpac
  */
 const water = new THREE.Mesh(
     new THREE.PlaneGeometry(10, 10, 1, 1),
-    new THREE.MeshPhysicalMaterial({
+    new THREE.MeshPhysicalNodeMaterial({
         transmission: 1,
         roughness: 0.3
     })
@@ -376,10 +376,11 @@ const tick = () =>
     cursor.lastTerrainCoordinates.copy(cursor.terrainCoordinates)
 
     // Render
-    renderer.renderAsync(scene, camera)
+    renderer.render(scene, camera)
 
     // Call tick again on the next frame
     window.requestAnimationFrame(tick)
 }
 
+await renderer.init()
 tick()
