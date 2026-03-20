@@ -1,11 +1,8 @@
 import GUI from 'lil-gui'
-import * as THREE from 'three'
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
-import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
-import { If, MeshBasicNodeMaterial, PointsNodeMaterial, SpriteNodeMaterial, add, cameraPosition, cameraProjectionMatrix, cameraViewMatrix, clamp, color, cond, cos, distance, float, frontFacing, hash, instanceIndex, length, mat2, min, mix, modelViewMatrix, modelWorldMatrix, mul, negate, normalWorld, positionGeometry, positionLocal, positionWorld, range, rotateUV, sin, smoothstep, step, storage, texture, timerDelta, timerGlobal, timerLocal, tslFn, uint, uniform, uv, varying, vec2, vec3, vec4 } from 'three/examples/jsm/nodes/Nodes.js'
-import WebGPURenderer from 'three/examples/jsm/renderers/webgpu/WebGPURenderer.js'
-import StorageInstancedBufferAttribute from 'three/examples/jsm/renderers/common/StorageInstancedBufferAttribute.js'
+import * as THREE from 'three/webgpu'
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+import { SpriteNodeMaterial, StorageInstancedBufferAttribute } from 'three/webgpu'
+import { deltaTime, hash, instanceIndex, min, mix, range, rotateUV, sin, storage, texture, time, Fn as tslFn, uint, uniform, uv, vec3, vec4 } from 'three/tsl'
 
 /**
  * Base
@@ -46,9 +43,6 @@ window.addEventListener('resize', () =>
     // Update renderer
     renderer.setSize(sizes.width, sizes.height)
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-
-    // // Update fireflies
-    // firefliesMaterial.uniforms.uPixelRatio.value = Math.min(window.devicePixelRatio, 2)
 })
 
 /**
@@ -68,7 +62,7 @@ controls.enableDamping = true
 /**
  * Renderer
  */
-const renderer = new WebGPURenderer({
+const renderer = new THREE.WebGPURenderer({
     canvas: canvas,
     antialias: true
 })
@@ -100,6 +94,9 @@ const textures = [
 ]
 const computes = []
 
+// Timer to track elapsed time in sync with the `time` TSL node
+const timer = new THREE.Timer()
+
 const createFirework = () =>
 {
     /**
@@ -122,14 +119,14 @@ const createFirework = () =>
         // Velocity
         const velocityElement = velocityBuffer.element(instanceIndex)
         velocityElement.assign(vec3(
-            instanceIndex.hash(),
-            instanceIndex.add(uint(Math.random() * 0xffffff)).hash(),
-            instanceIndex.add(uint(Math.random() * 0xffffff)).hash()
+            hash(instanceIndex),
+            hash(instanceIndex.add(uint(Math.random() * 0xffffff))),
+            hash(instanceIndex.add(uint(Math.random() * 0xffffff)))
         ).sub(0.5).mul(20))
 
         // damper
         const damperElement = damperBuffer.element(instanceIndex)
-        damperElement.assign(instanceIndex.add(uint(Math.random() * 0xffffff)).hash().remap(0, 1, 0.05, 0.2))
+        damperElement.assign(hash(instanceIndex.add(uint(Math.random() * 0xffffff))).remap(0, 1, 0.05, 0.2))
     })
 
     const particlesInitCompute = particlesInit().compute(count)
@@ -141,25 +138,31 @@ const createFirework = () =>
         const positionElement = positionBuffer.element(instanceIndex)
         const velocityElement = velocityBuffer.element(instanceIndex)
         const damperElement = damperBuffer.element(instanceIndex)
-        
+
         const gravity = vec3(0, -0.015, 0)
-        
+
         velocityElement.addAssign(gravity)
         velocityElement.mulAssign(damperElement.oneMinus())
-        positionElement.addAssign(velocityElement.mul(timerDelta()))
+        positionElement.addAssign(velocityElement.mul(deltaTime))
     })
 
-    computes.push(particlesUpdate().compute(count))
+    const updateCompute = particlesUpdate().compute(count)
+    computes.push(updateCompute)
 
     material.positionNode = positionBuffer.toAttribute()
 
     /**
     * Scale
+    * Use localTime (time since this firework was created) instead of global time,
+    * so scaleLife always starts at 0 regardless of when the firework was spawned.
     */
-    const scaleOscillation = sin(timerLocal(3).add(range(0, Math.PI * 2))).remap(-1, 1, 0.1, 1)
+    const startOffset = uniform(timer.getElapsed())
+    const localTime = time.sub(startOffset)
+
+    const scaleOscillation = sin(localTime.mul(3).add(range(0, Math.PI * 2))).remap(-1, 1, 0.1, 1)
     const scaleLife = min(
-        timerLocal().div(duration).remap(0, 0.1).smoothstep(0, 1),
-        timerLocal().div(duration).remap(1, 0.5).smoothstep(0, 1)
+        localTime.div(duration).remap(0, 0.1).smoothstep(0, 1),
+        localTime.div(duration).remap(1, 0.5).smoothstep(0, 1)
     )
     material.scaleNode = scaleOscillation.mul(scaleLife).mul(0.2)
 
@@ -184,7 +187,7 @@ const createFirework = () =>
     )
     scene.add(mesh)
 
-    return mesh
+    return { mesh, updateCompute }
 }
 
 /**
@@ -192,21 +195,20 @@ const createFirework = () =>
  */
 window.addEventListener('click', () =>
 {
-    const mesh = createFirework()
+    const { mesh, updateCompute } = createFirework()
     window.setTimeout(() =>
     {
         scene.remove(mesh)
+        computes.splice(computes.indexOf(updateCompute), 1)
     }, 4000)
 })
 
 /**
  * Animate
  */
-const clock = new THREE.Clock()
-
 const tick = () =>
 {
-    const elapsedTime = clock.getElapsedTime()
+    timer.update()
 
     // Update controls
     controls.update()
@@ -216,10 +218,11 @@ const tick = () =>
     {
         renderer.compute(compute)
     }
-    renderer.renderAsync(scene, camera)
+    renderer.render(scene, camera)
 
     // Call tick again on the next frame
     window.requestAnimationFrame(tick)
 }
 
+await renderer.init()
 tick()
