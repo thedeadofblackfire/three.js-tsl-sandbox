@@ -1,10 +1,8 @@
-import * as THREE from 'three'
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
-import GUI from 'lil-gui'
-import { If, PI, SpriteNodeMaterial, color, cos, instanceIndex, loop, mix, mod, sin, storage, timerDelta, tslFn, uint, uniform, uniforms, vec3, vec4 } from 'three/src/nodes/Nodes.js'
-import StorageInstancedBufferAttribute from 'three/src/renderers/common/StorageInstancedBufferAttribute.js'
-import WebGPURenderer from 'three/src/renderers/webgpu/WebGPURenderer.js'
+import * as THREE from 'three/webgpu'
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { TransformControls } from 'three/addons/controls/TransformControls.js'
+import GUI from 'lil-gui'
+import { If, PI, color, cos, deltaTime, hash, instanceIndex, Loop as loop, mix, mod, sin, storage, Fn as tslFn, uint, uniform, uniformArray as uniforms, vec3, vec4 } from 'three/tsl'
 
 /**
  * Base
@@ -56,7 +54,7 @@ cameraControls.enableDamping = true
 /**
  * Renderer
  */
-const renderer = new WebGPURenderer({
+const renderer = new THREE.WebGPURenderer({
     canvas: canvas,
     antialias: true
 })
@@ -110,9 +108,10 @@ for(let i = 0; i < attractorsPositions.array.length; i++)
     attractor.controls.mode = 'rotate'
     attractor.controls.size = 0.5
     attractor.controls.attach(attractor.reference)
-    attractor.controls.visible = true
-    attractor.controls.enabled = attractor.controls.visible
-    scene.add(attractor.controls)
+    attractor.controls.enabled = true
+    attractor.controlsHelper = attractor.controls.getHelper()
+    attractor.controlsHelper.visible = true
+    scene.add(attractor.controlsHelper)
     
     attractor.controls.addEventListener('dragging-changed', (event) =>
     {
@@ -133,7 +132,7 @@ for(let i = 0; i < attractorsPositions.array.length; i++)
  */
 // Setup
 const count = Math.pow(2, 18)
-const material = new SpriteNodeMaterial({ transparent: true, blending: THREE.AdditiveBlending, depthWrite: false })
+const material = new THREE.SpriteNodeMaterial({ transparent: true, blending: THREE.AdditiveBlending, depthWrite: false })
 
 // Uniforms
 const attractorMass = uniform(Number(`1e${7}`))
@@ -149,8 +148,8 @@ const colorA = uniform(color('#5900ff'))
 const colorB = uniform(color('#ffa575'))
 
 // Attributes / Buffers
-const positionBuffer = storage(new StorageInstancedBufferAttribute(count, 3), 'vec3', count)
-const velocityBuffer = storage(new StorageInstancedBufferAttribute(count, 3), 'vec3', count)
+const positionBuffer = storage(new THREE.StorageInstancedBufferAttribute(count, 3), 'vec3', count)
+const velocityBuffer = storage(new THREE.StorageInstancedBufferAttribute(count, 3), 'vec3', count)
 
 // Functions
 const sphericalToVec3 = tslFn(([phi, theta]) =>
@@ -171,14 +170,14 @@ const init = tslFn(() =>
     const velocity = velocityBuffer.element(instanceIndex)
 
     const basePosition = vec3(
-        instanceIndex.add(uint(Math.random() * 0xffffff)).hash(),
-        instanceIndex.add(uint(Math.random() * 0xffffff)).hash(),
-        instanceIndex.add(uint(Math.random() * 0xffffff)).hash()
+        hash(instanceIndex.add(uint(Math.random() * 0xffffff))),
+        hash(instanceIndex.add(uint(Math.random() * 0xffffff))),
+        hash(instanceIndex.add(uint(Math.random() * 0xffffff)))
     ).sub(0.5).mul(vec3(5, 0.2, 5))
     position.assign(basePosition)
 
-    const phi = instanceIndex.add(uint(Math.random() * 0xffffff)).hash().mul(PI).mul(2)
-    const theta = instanceIndex.add(uint(Math.random() * 0xffffff)).hash().mul(PI)
+    const phi = hash(instanceIndex.add(uint(Math.random() * 0xffffff))).mul(PI).mul(2)
+    const theta = hash(instanceIndex.add(uint(Math.random() * 0xffffff))).mul(PI)
     const baseVelocity = sphericalToVec3(phi, theta).mul(0.05)
     velocity.assign(baseVelocity)
 })
@@ -189,14 +188,15 @@ const reset = () =>
 {
     renderer.compute(initCompute)
 }
+await renderer.init()
 reset()
 
 // Update
-const particleMassMultiplier = instanceIndex.add(uint(Math.random() * 0xffffff)).hash().remap(0.25, 1).toVar()
+const particleMassMultiplier = hash(instanceIndex.add(uint(Math.random() * 0xffffff))).remap(0.25, 1).toVar()
 const particleMass = particleMassMultiplier.mul(particleGlobalMass).toVar()
 const update = tslFn(() =>
 {
-    const delta = timerDelta().mul(timeScale).min(1/30).toVar()
+    const delta = deltaTime.mul(timeScale).min(1/30).toVar()
     const position = positionBuffer.element(instanceIndex)
     const velocity = velocityBuffer.element(instanceIndex)
 
@@ -277,12 +277,12 @@ gui
         {
             if(value === 'none')
             {
-                attractor.controls.visible = false
+                attractor.controlsHelper.visible = false
                 attractor.controls.enabled = false
             }
             else
             {
-                attractor.controls.visible = true
+                attractor.controlsHelper.visible = true
                 attractor.controls.enabled = true
                 attractor.controls.mode = value
             }
@@ -307,7 +307,7 @@ const tick = () =>
 
     // Render
     renderer.compute(updateCompute)
-    renderer.renderAsync(scene, camera)
+    renderer.render(scene, camera)
 
     // Call tick again on the next frame
     window.requestAnimationFrame(tick)
