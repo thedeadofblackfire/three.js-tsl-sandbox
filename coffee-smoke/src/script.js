@@ -1,9 +1,9 @@
 import GUI from 'lil-gui'
-import * as THREE from 'three'
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
-import { MeshBasicNodeMaterial, mix, mul, positionLocal, smoothstep, texture, timerGlobal, oneMinus, tslFn, uv, vec2, vec3, vec4 } from 'three/examples/jsm/nodes/Nodes.js'
-import WebGPURenderer from 'three/examples/jsm/renderers/webgpu/WebGPURenderer.js'
+import * as THREE from 'three/webgpu'
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
+import { MeshBasicNodeMaterial } from 'three/webgpu'
+import { mix, mul, positionLocal, rotateUV, smoothstep, texture, time, oneMinus, Fn as tslFn, uv, vec2, vec3, vec4 } from 'three/tsl'
 
 /**
  * Base
@@ -45,12 +45,10 @@ const smokeMaterial = new MeshBasicNodeMaterial({ transparent: true, side: THREE
 // Position
 smokeMaterial.positionNode = tslFn(() =>
 {
-    const time = timerGlobal()
-
     // Twist
     const twistNoiseUv = vec2(0.5, uv().y.mul(0.2).sub(time.mul(0.005)).mod(1))
     const twist = texture(noiseTexture, twistNoiseUv).r.mul(10)
-    positionLocal.xz.assign(positionLocal.xz.rotateUV(twist, vec2(0)))
+    positionLocal.xz.assign(rotateUV(positionLocal.xz, twist, vec2(0)))
 
     // Wind
     const windOffset = vec2(
@@ -65,8 +63,6 @@ smokeMaterial.positionNode = tslFn(() =>
 // Color
 smokeMaterial.colorNode = tslFn(() =>
 {
-    const time = timerGlobal()
-
     const alphaNoiseUv = uv().mul(vec2(0.5, 0.3)).add(vec2(0, time.mul(0.03).negate()))
     const alpha = mul(
         texture(noiseTexture, alphaNoiseUv).r.smoothstep(0.4, 1),
@@ -119,9 +115,6 @@ window.addEventListener('resize', () =>
     // Update renderer
     renderer.setSize(sizes.width, sizes.height)
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-
-    // // Update fireflies
-    // firefliesMaterial.uniforms.uPixelRatio.value = Math.min(window.devicePixelRatio, 2)
 })
 
 /**
@@ -142,7 +135,7 @@ controls.enableDamping = true
 /**
  * Renderer
  */
-const renderer = new WebGPURenderer({
+const renderer = new THREE.WebGPURenderer({
     canvas: canvas,
     antialias: true
 })
@@ -162,18 +155,17 @@ gui
 /**
  * Animate
  */
-const clock = new THREE.Clock()
-
 const tick = () =>
 {
     // Update controls
     controls.update()
 
     // Render
-    renderer.renderAsync(scene, camera)
+    renderer.render(scene, camera)
 
     // Call tick again on the next frame
     window.requestAnimationFrame(tick)
 }
 
+await renderer.init()
 tick()
