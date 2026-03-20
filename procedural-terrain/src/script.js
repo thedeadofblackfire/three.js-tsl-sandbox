@@ -1,6 +1,6 @@
 import * as THREE from 'three/webgpu'
 import { max, uv, mx_noise_float, color, cross, dot, float, modelNormalMatrix, positionLocal, sign, smoothstep, step, Fn as tslFn, uniform, varyingProperty, vec2, vec3, Loop } from 'three/tsl'
-import { RGBELoader } from 'three/addons/loaders/RGBELoader.js'
+import { HDRLoader } from 'three/addons/loaders/HDRLoader.js'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { Brush, Evaluator, SUBTRACTION } from 'three-bvh-csg'
 import GUI from 'lil-gui'
@@ -18,7 +18,7 @@ const canvas = document.querySelector('canvas.webgl')
 const scene = new THREE.Scene()
 
 // Loaders
-const rgbeLoader = new RGBELoader()
+const rgbeLoader = new HDRLoader()
 
 // // Axes helper
 // const axesHelper = new THREE.AxesHelper()
