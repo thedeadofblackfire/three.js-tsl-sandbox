@@ -1,8 +1,8 @@
 import GUI from 'lil-gui'
-import * as THREE from 'three'
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
-import { modelViewMatrix, cameraProjectionMatrix, WebGPURenderer, MeshBasicNodeMaterial, skinning, add, color, hash, mix, modelWorldMatrix, normalView, positionLocal, positionWorld, sin, timerGlobal, tslFn, uniform, vec3, vec4, cameraViewMatrix, varying } from 'three/tsl'
+import * as THREE from 'three/webgpu'
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
+import { modelViewMatrix, cameraProjectionMatrix, skinning, add, color, hash, mix, normalView, positionWorld, sin, time, Fn as tslFn, uniform, vec3, vec4, cameraViewMatrix, varyingProperty } from 'three/tsl'
 
 /**
  * Base
@@ -25,7 +25,7 @@ const gltfLoader = new GLTFLoader()
 /**
  * Material
  */
-const material = new MeshBasicNodeMaterial({
+const material = new THREE.MeshBasicNodeMaterial({
     transparent: true,
     side: THREE.DoubleSide,
     depthWrite: false,
@@ -33,11 +33,11 @@ const material = new MeshBasicNodeMaterial({
 })
 
 // Position
-const glitchStrength = varying(0)
+const glitchStrength = varyingProperty('float')
 
 material.vertexNode = tslFn(() =>
 {
-    const glitchTime = timerGlobal().sub(positionWorld.y.mul(0.5))
+    const glitchTime = time.sub(positionWorld.y.mul(0.5))
     
     glitchStrength.assign(add(
         sin(glitchTime),
@@ -62,7 +62,7 @@ const colorOutside = uniform(color('#4d55ff'))
 
 material.colorNode = tslFn(() =>
 {
-    const stripes = positionWorld.y.sub(timerGlobal(0.02)).mul(20).mod(1).pow(3)
+    const stripes = positionWorld.y.sub(time.mul(0.02)).mul(20).mod(1).pow(3)
 
     const fresnel = normalView.dot(vec3(0, 0, 1)).abs().oneMinus()
     const falloff = fresnel.smoothstep(0.8, 0.2)
@@ -171,7 +171,7 @@ controls.enableDamping = true
 /**
  * Renderer
  */
-const renderer = new WebGPURenderer({
+const renderer = new THREE.WebGPURenderer({
     canvas: canvas,
     antialias: true
 })
@@ -190,11 +190,12 @@ gui
 /**
  * Animate
  */
-const clock = new THREE.Clock()
+const timer = new THREE.Timer()
 
 const tick = () =>
 {
-    const deltaTime = clock.getDelta()
+    timer.update()
+    const deltaTime = timer.getDelta()
 
     if ( typeof mixer !== 'undefined' )
     {
@@ -205,10 +206,11 @@ const tick = () =>
     controls.update()
 
     // Render
-    renderer.renderAsync(scene, camera)
+    renderer.render(scene, camera)
 
     // Call tick again on the next frame
     window.requestAnimationFrame(tick)
 }
 
+await renderer.init()
 tick()
