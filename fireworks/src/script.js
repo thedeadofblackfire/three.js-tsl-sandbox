@@ -94,6 +94,9 @@ const textures = [
 ]
 const computes = []
 
+// Shared geometry — created once, reused for every firework InstancedMesh
+const particleGeometry = new THREE.PlaneGeometry(1, 1)
+
 // Timer to track elapsed time in sync with the `time` TSL node
 const timer = new THREE.Timer()
 
@@ -107,11 +110,15 @@ const createFirework = () =>
     const duration = 4
 
     /**
-    * Position
+    * Position — keep raw attribute refs for VRAM disposal on cleanup
     */
-    const positionBuffer = storage(new StorageInstancedBufferAttribute(count, 3), 'vec3', count)
-    const velocityBuffer = storage(new StorageInstancedBufferAttribute(count, 3), 'vec3', count)
-    const damperBuffer = storage(new StorageInstancedBufferAttribute(count, 1), 'float', count)
+    const positionAttr = new StorageInstancedBufferAttribute(count, 3)
+    const velocityAttr = new StorageInstancedBufferAttribute(count, 3)
+    const damperAttr   = new StorageInstancedBufferAttribute(count, 1)
+
+    const positionBuffer = storage(positionAttr, 'vec3', count)
+    const velocityBuffer = storage(velocityAttr, 'vec3', count)
+    const damperBuffer   = storage(damperAttr,   'float', count)
 
     // Compute init
     const particlesInit = tslFn(() =>
@@ -177,9 +184,9 @@ const createFirework = () =>
     material.colorNode = vec4(finalColor, alpha)
 
     /**
-    * Mesh
+    * Mesh — reuse shared geometry, no need to clone the material
     */
-    const mesh = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), material.clone(), count)
+    const mesh = new THREE.InstancedMesh(particleGeometry, material, count)
     mesh.position.set(
         (Math.random() - 0.5) * 6,
         (Math.random() - 0.5) * 6,
@@ -187,7 +194,7 @@ const createFirework = () =>
     )
     scene.add(mesh)
 
-    return { mesh, updateCompute }
+    return { mesh, material, updateCompute, positionAttr, velocityAttr, damperAttr }
 }
 
 /**
@@ -195,11 +202,17 @@ const createFirework = () =>
  */
 window.addEventListener('click', () =>
 {
-    const { mesh, updateCompute } = createFirework()
+    const { mesh, material, updateCompute, positionAttr, velocityAttr, damperAttr } = createFirework()
     window.setTimeout(() =>
     {
         scene.remove(mesh)
         computes.splice(computes.indexOf(updateCompute), 1)
+
+        // Free GPU buffers so VRAM doesn't accumulate across many fireworks
+        positionAttr.dispose()
+        velocityAttr.dispose()
+        damperAttr.dispose()
+        material.dispose()
     }, 4000)
 })
 
